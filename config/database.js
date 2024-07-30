@@ -13,7 +13,7 @@ const sequelize = new Sequelize({
 // 	"<password>",
 // 	{
 // 		host: "<host>",
-// 		port: 27063,
+// 		port: <port_number>,
 // 		dialect: "mysql",
 // 		dialectOptions: {
 // 			ssl: {

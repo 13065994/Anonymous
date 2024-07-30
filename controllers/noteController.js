@@ -9,9 +9,7 @@ exports.renderNote = (req, res) => {
 		return res.redirect(`/${newEndpoint}`);
 	}
 
-	res.render('index', {
-		endpoint: req.params.endpoint
-	});
+	res.render('index', { endpoint });
 };
 
 exports.getNote = async (req, res) => {
@@ -25,17 +23,25 @@ exports.getNote = async (req, res) => {
 	const note = await Note.findByPk(endpoint);
 
 	if (note) {
-		const isPasswordValid = note.password && await bcrypt.compare(password, note.password);
-		res.json({
+		const isPasswordValid = note.password ? await bcrypt.compare(password, note.password) : true;
+		return res.json({
 			endpoint: note.endpoint,
 			content: isPasswordValid ? note.content : "<THIS_NOTE_IS_PASSWORD_PROTECTED>",
 			hasPassword: !!note.password
 		});
 	}
-	else {
-		await Note.create({ endpoint, content: "", author: author || null, password });
-		res.json({ endpoint, content: "", hasPassword: false });
-	}
+
+	const newNote = await Note.create({
+		endpoint,
+		content: "",
+		author: author || null,
+		password
+	});
+	return res.json({
+		endpoint: newNote.endpoint,
+		content: "",
+		hasPassword: false
+	});
 };
 
 exports.createOrUpdateNote = async (req, res) => {
@@ -52,10 +58,8 @@ exports.createOrUpdateNote = async (req, res) => {
 			password: null
 		});
 	}
-
-	if (note.password && !await bcrypt.compare(password, note.password)) {
-		await note.save();
-		return res.status(403).send({
+	else if (note.password && !await bcrypt.compare(password, note.password)) {
+		return res.status(403).json({
 			error: 'Forbidden: Incorrect password'
 		});
 	}
@@ -63,25 +67,24 @@ exports.createOrUpdateNote = async (req, res) => {
 	note.content = content;
 	await note.save();
 
-	res.sendStatus(200);
+	return res.sendStatus(200);
 };
 
 exports.updatePassword = async (req, res) => {
 	const { endpoint } = req.params;
-	const { password, author } = req.body;
+	const { password = "", author } = req.body;
 
 	const note = await Note.findByPk(endpoint);
 
 	if (!note) {
-		return res.status(404).send({
+		return res.status(404).json({
 			error: 'Not found',
 			content: "<THIS_NOTE_DOES_NOT_EXIST>"
 		});
 	}
 
-	const hashedPassword = await bcrypt.hash(password, 10);
-	if (author != note.author) {
-		if (!await bcrypt.compare(password, note.password)) {
+	if (author !== note.author) {
+		if (note.password && !await bcrypt.compare(password, note.password)) {
 			return res.status(403).json({
 				error: 'Forbidden: Incorrect author',
 				content: "<THIS_NOTE_IS_PASSWORD_PROTECTED>"
@@ -92,10 +95,14 @@ exports.updatePassword = async (req, res) => {
 		});
 	}
 
+	const hashedPassword = await bcrypt.hash(password, 10);
 	note.password = hashedPassword;
+	if (!password) {
+		note.password = null;
+	}
 	await note.save();
 
-	res.json({
+	return res.json({
 		message: 'Password updated',
 		content: note.content,
 		hasPassword: true

@@ -16,7 +16,7 @@ const Note = sequelize.define('Note', {
 		allowNull: true
 	},
 	author: {
-		type: DataTypes.JSONB, // lưu trữ thông tin phân biệt người dùng
+		type: DataTypes.STRING, // lưu trữ thông tin phân biệt người dùng
 		allowNull: true
 	}
 });
