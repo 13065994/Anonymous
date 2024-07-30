@@ -1,0 +1,24 @@
+{
+	"name": "Anonymous-Notepad",
+	"version": "1.0.0",
+	"description": "A web app for anonymous note-taking with unique URLs. Supports light and dark modes. Built with Node.js, Express, and SQLite.",
+	"main": "index.js",
+	"engines": {
+		"node": "20.x"
+	},
+	"scripts": {
+		"start": "node index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"bcrypt": "^5.1.1",
+		"body-parser": "^1.20.2",
+		"ejs": "^3.1.10",
+		"express": "^4.19.2",
+		"sequelize": "^6.37.3",
+		"sqlite3": "^5.1.7",
+		"uuid": "^10.0.0"
+	}
+}

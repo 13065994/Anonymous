@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anonymous Notepad</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container mt-2">
+    <h1>Anonymous Notepad</h1>
+    <div class="mb-3">
+      <textarea class="form-control" id="content" rows="10" style="height: 70vh"></textarea>
+    </div>
+    <div class="mb-3">
+      <input type="password" class="form-control" id="password" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary mb-3" id="copyUrl">Copy URL</button>
+    <button class="btn btn-secondary mb-3" id="toggleTheme">Toggle Dark/Light Mode</button>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5; max-width: 100%">
+    <div id="copyToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">Notification</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        URL copied to clipboard!
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const fingerprint = generateFingerprint();
+    getAndSetContent();
+
+    document.getElementById('copyUrl').onclick = function() {
+      navigator.clipboard.writeText(window.location.href).then(function() {
+        // Show the toast
+        const toastElement = document.getElementById('copyToast');
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+      });
+    };
+
+    document.getElementById('content').addEventListener("input", function() {
+      updateContent();
+    });
+
+    document.getElementById('toggleTheme').onclick = function() {
+      const htmlRoot = document.getElementById('htmlRoot');
+      if (htmlRoot.getAttribute('data-bs-theme') === 'dark') {
+        htmlRoot.removeAttribute('data-bs-theme');
+        localStorage.setItem('theme', 'light');
+      } else {
+        htmlRoot.setAttribute('data-bs-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    };
+
+    document.getElementById('password').addEventListener("input", function() {
+      fetch(window.location.pathname + "/update-password", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            password: document.getElementById('password').value,
+            author: fingerprint,
+            endpoint: window.location.pathname.replace('/', '')
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.content) {
+            document.getElementById('content').value = data.content;
+          }
+        });
+    });
+
+    // Set theme on page load
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && savedTheme === 'dark') {
+      document.getElementById('htmlRoot').setAttribute('data-bs-theme', 'dark');
+    }
+
+    function getAndSetContent() {
+      fetch('/api/getNote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            password: document.getElementById('password').value,
+            endpoint: window.location.pathname.replace('/', ''),
+            author: fingerprint
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('content').value = data.content;
+        });
+    }
+
+    function updateContent() {
+      fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: document.getElementById('content').value,
+          author: fingerprint,
+          password: document.getElementById('password').value
+        }),
+      });
+    }
+
+    function generateFingerprint() {
+      // Thu thập thông tin về hệ thống
+      const userAgent = navigator.userAgent;
+      const screenWidth = window.screen.width;
+      const screenHeight = window.screen.height;
+      const colorDepth = window.screen.colorDepth;
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const language = navigator.language;
+      const plugins = Array.from(navigator.plugins).map(plugin => plugin.name).join(',');
+      const fonts = detectFonts();
+
+      // Kết hợp các thông tin để tạo fingerprint
+      const fingerprintString = [
+        userAgent,
+        screenWidth,
+        screenHeight,
+        colorDepth,
+        timezoneOffset,
+        language,
+        plugins,
+        fonts
+      ].join('|');
+
+      // Hash hóa fingerprint string để tạo một giá trị duy nhất
+      return hashFingerprint(fingerprintString);
+    }
+
+    function detectFonts() {
+      // Hàm giả định để phát hiện các font chữ có sẵn
+      // Bạn có thể sử dụng các phương pháp khác để xác định font chữ nếu cần
+      const testFonts = ['Arial', 'Verdana', 'Times New Roman', 'Courier New'];
+      const fontTestElement = document.createElement('span');
+      fontTestElement.style.position = 'absolute';
+      fontTestElement.style.left = '-9999px';
+      fontTestElement.style.fontSize = '72px';
+      fontTestElement.style.fontFamily = 'sans-serif';
+      fontTestElement.textContent = 'abcdefghijklmnopqrstuvwxyz';
+
+      document.body.appendChild(fontTestElement);
+      const detectedFonts = testFonts.filter(font => {
+        fontTestElement.style.fontFamily = font + ', sans-serif';
+        return fontTestElement.offsetWidth !== fontTestElement.offsetWidth; // check font width
+      });
+      document.body.removeChild(fontTestElement);
+      return detectedFonts.join(',');
+    }
+
+    function hashFingerprint(fingerprint) {
+      // Sử dụng thuật toán hash đơn giản để tạo một giá trị duy nhất từ fingerprint string
+      // Bạn có thể thay thế hàm hash này bằng một thuật toán hash mạnh hơn nếu cần
+      let hash = 0;
+      for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash |= 0; // convert to 32-bit integer
+      }
+      return hash.toString(16);
+    }
+
+    console.log(generateFingerprint());
+  </script>
+</body>
+
+</html>
