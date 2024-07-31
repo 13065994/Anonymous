@@ -2,14 +2,24 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const Note = require('../models/Note');
 
-exports.renderNote = (req, res) => {
+exports.renderNote = async (req, res) => {
 	const { endpoint } = req.params;
 	if (!endpoint) {
 		const newEndpoint = uuidv4().replace(/-/g, '').slice(0, 16);
 		return res.redirect(`/${newEndpoint}`);
 	}
 
-	res.render('index', { endpoint });
+	const note = await Note.findByPk(endpoint);
+	let isAuthor = false;
+	if (!note) {
+		isAuthor = true;
+	}
+
+	res.render('index', {
+		endpoint,
+		content: note ? note.password ? "<THIS_NOTE_IS_PASSWORD_PROTECTED>" : note.content : "",
+		isAuthor
+	});
 };
 
 exports.getNote = async (req, res) => {
@@ -64,6 +74,9 @@ exports.createOrUpdateNote = async (req, res) => {
 		});
 	}
 
+	if (!note.author) {
+		note.author = author || null;
+	}
 	note.content = content;
 	await note.save();
 
@@ -106,5 +119,16 @@ exports.updatePassword = async (req, res) => {
 		message: 'Password updated',
 		content: note.content,
 		hasPassword: true
+	});
+};
+
+exports.isAuthor = async (req, res) => {
+	const { endpoint } = req.params;
+	const { author } = req.body;
+
+	const note = await Note.findByPk(endpoint);
+
+	return res.json({
+		isAuthor: note ? note.author === author : true
 	});
 };
