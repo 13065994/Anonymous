@@ -5,20 +5,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anonymous Notepad</title>
+  <!-- ico -->
+  <link rel="icon" href="/images/web-logo.png" type="image/x-icon">
+  <meta name="description" content="Anonymous Notepad is a simple web application that allows you to create notes without signing up.">
+  <meta name="keywords" content="Anonymous Notepad, Notepad, Note, Anonymous, Web Application">
+  <meta name="author" content="Anonymous Notepad">
+  <meta property="og:title" content="Anonymous Notepad">
+  <meta property="og:description" content="Anonymous Notepad is a simple web application that allows you to create notes without signing up.">
+  <meta property="og:image" content="/images/web-logo.png">
+  <meta property="og:url" content="https://anonymous-notepad.herokuapp.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Anonymous Notepad">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="en_US">
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
   <div class="container mt-2">
     <h1>Anonymous Notepad</h1>
     <div class="mb-3">
-      <textarea class="form-control" id="content" rows="10" style="height: 70vh"></textarea>
+      <textarea class="form-control" id="content" rows="10" style="height: 70vh"><%= content %></textarea>
     </div>
     <div class="mb-3">
-      <input type="password" class="form-control" id="password" placeholder="Enter password">
+      <label for="password" class="form-label">Password:</label>
+      <input type="password" class="form-control" id="password" placeholder="Enter password" style="<%= isAuthor ? 'border: 2px solid green' : '' %>">
     </div>
     <button class="btn btn-primary mb-3" id="copyUrl">Copy URL</button>
     <button class="btn btn-secondary mb-3" id="toggleTheme">Toggle Dark/Light Mode</button>
+		<p class="text-muted">Note: when you see border color is green on password input, it means you are the author of this note and you can update the password. Otherwise, if content is protected by password, you must enter the correct password to view and edit the content.</p>
   </div>
 
   <!-- Toast Container -->
@@ -34,11 +52,11 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     const fingerprint = generateFingerprint();
-    getAndSetContent();
+    let contentIsChanged = false;
+    getAndSetContent(true);
+    isAuthorNote();
 
     document.getElementById('copyUrl').onclick = function() {
       navigator.clipboard.writeText(window.location.href).then(function() {
@@ -50,6 +68,7 @@
     };
 
     document.getElementById('content').addEventListener("input", function() {
+      contentIsChanged = true;
       updateContent();
     });
 
@@ -78,7 +97,7 @@
         })
         .then(response => response.json())
         .then(data => {
-          if (data.content) {
+          if (data.hasOwnProperty('content')) {
             document.getElementById('content').value = data.content;
           }
         });
@@ -90,7 +109,7 @@
       document.getElementById('htmlRoot').setAttribute('data-bs-theme', 'dark');
     }
 
-    function getAndSetContent() {
+    function getAndSetContent(isInitialLoad) {
       fetch('/api/getNote', {
           method: 'POST',
           headers: {
@@ -104,6 +123,9 @@
         })
         .then(response => response.json())
         .then(data => {
+          if (isInitialLoad && contentIsChanged) {
+            return;
+          }
           document.getElementById('content').value = data.content;
         });
     }
@@ -181,7 +203,21 @@
       return hash.toString(16);
     }
 
-    console.log(generateFingerprint());
+    function isAuthorNote() {
+      fetch(window.location.pathname + "/is-author", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            author: fingerprint
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('password').style.border = data.isAuthor ? '2px solid green' : '2px solid blue';
+        });
+    }
   </script>
 </body>
 
