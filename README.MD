@@ -6,7 +6,6 @@
 	<strong>Anonymous Notepad is a simple web application that allows users to create and share notes with a unique URL.</strong>
 </p>
 
-<!-- how to install -->
 ## 🚀 Installation
 1. Clone the repository
 ```bash
