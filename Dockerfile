@@ -1,20 +1,26 @@
-# Sử dụng image node chính thức từ Docker Hub
+# Use the official image as a parent image
 FROM node:16
 
-# Tạo thư mục app và đặt nó làm working directory
+# Set the working directory
+USER root
+
+# Create and set the working directory
 WORKDIR /app
 
-# Copy package.json và package-lock.json vào working directory
+# Copy the file from your host to your current location
 COPY package*.json ./
 
-# Cài đặt các dependencies
+# Install the dependencies
 RUN npm install
 
-# Copy toàn bộ mã nguồn vào working directory
+# Copy the rest of your app's source code from your host to your image filesystem
 COPY . .
 
-# Mở port mà ứng dụng sẽ chạy
+# Grant permission to read, write and execute for the app directory and its contents
+RUN chmod -R 777 /app
+
+# Make port 3000 available to the world outside this container
 EXPOSE 3000
 
 # Khởi động ứng dụng
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
