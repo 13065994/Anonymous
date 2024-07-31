@@ -30,7 +30,6 @@ npm start
 - Dark mode support
 
 ## 🛡️ How to use password protection?
-<!-- chỉ thiết bị khởi tạo note mới có thể tạo password cho note -->
 - Just device that created the note can set the password for the note
 - To set the password for the note, easily enter the password in the password field, system will automatically encrypt the password
 - When you want to share the note, just share the note URL and the password with others
